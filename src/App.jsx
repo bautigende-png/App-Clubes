@@ -5,6 +5,7 @@ import { ProtectedRoute } from './router/ProtectedRoute'
 
 import Login from './pages/auth/Login'
 import Registro from './pages/auth/Registro'
+import RegistroForm from './pages/auth/RegistroForm'
 
 import DirectivaLayout from './pages/directiva/DirectivaLayout'
 import DashboardDirectiva from './pages/directiva/DashboardDirectiva'
@@ -42,6 +43,9 @@ export default function App() {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/registro" element={<Registro />} />
+          <Route path="/registro/jugador" element={<RegistroForm role="jugador" />} />
+          <Route path="/registro/tecnico" element={<RegistroForm role="tecnico" />} />
+          <Route path="/registro/directiva" element={<RegistroForm role="directiva" />} />
           <Route path="/" element={<ProtectedRoute><RoleRedirect /></ProtectedRoute>} />
 
           {/* Comisión Directiva */}

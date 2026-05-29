@@ -30,31 +30,44 @@ router.post('/login', async (req, res) => {
   res.json({ token, user: { id: user.id, email: user.email }, profile })
 })
 
-// POST /api/auth/register (solo jugadores, ruta pública)
+// POST /api/auth/register
 router.post('/register', async (req, res) => {
-  const { nombre, apellido, email, password, telefono, posicion, numero_camiseta, fecha_nacimiento } = req.body
-  if (!nombre || !apellido || !email || !password)
-    return res.status(400).json({ error: 'Nombre, apellido, email y contraseña son requeridos' })
+  const { nombre, apellido, email, password, telefono, posicion, numero_camiseta, fecha_nacimiento, role, invite_code } = req.body
+
+  if (!nombre || !apellido || !email || !password || !role)
+    return res.status(400).json({ error: 'Nombre, apellido, email, contraseña y rol son requeridos' })
+  if (!['jugador', 'tecnico', 'directiva'].includes(role))
+    return res.status(400).json({ error: 'Rol inválido' })
   if (password.length < 6)
     return res.status(400).json({ error: 'La contraseña debe tener al menos 6 caracteres' })
+
+  // Códigos de acceso para roles privilegiados
+  if (role === 'directiva') {
+    const code = process.env.INVITE_CODE_DIRECTIVA || 'directiva2024'
+    if (invite_code !== code)
+      return res.status(403).json({ error: 'Código de acceso incorrecto' })
+  }
+  if (role === 'tecnico') {
+    const code = process.env.INVITE_CODE_TECNICO || 'tecnico2024'
+    if (invite_code !== code)
+      return res.status(403).json({ error: 'Código de acceso incorrecto' })
+  }
 
   const [existing] = await sql`SELECT id FROM users WHERE email = ${email}`
   if (existing) return res.status(409).json({ error: 'Ese email ya está registrado' })
 
   const hash = await bcrypt.hash(password, 10)
-  const [newUser] = await sql`
-    INSERT INTO users (email, password_hash) VALUES (${email}, ${hash}) RETURNING id, email
-  `
+  const [newUser] = await sql`INSERT INTO users (email, password_hash) VALUES (${email}, ${hash}) RETURNING id, email`
   await sql`
     INSERT INTO profiles (id, nombre, apellido, role, telefono, posicion, numero_camiseta, fecha_nacimiento)
-    VALUES (${newUser.id}, ${nombre}, ${apellido}, 'jugador',
+    VALUES (${newUser.id}, ${nombre}, ${apellido}, ${role},
             ${telefono ?? null}, ${posicion ?? null},
             ${numero_camiseta ? parseInt(numero_camiseta) : null},
             ${fecha_nacimiento ?? null})
   `
 
-  const token = signToken({ id: newUser.id, email: newUser.email, role: 'jugador' })
-  const profile = { id: newUser.id, email: newUser.email, nombre, apellido, role: 'jugador', telefono: telefono ?? null, posicion: posicion ?? null, numero_camiseta: numero_camiseta ?? null, fecha_nacimiento: fecha_nacimiento ?? null }
+  const token = signToken({ id: newUser.id, email: newUser.email, role })
+  const profile = { id: newUser.id, email: newUser.email, nombre, apellido, role, telefono: telefono ?? null, posicion: posicion ?? null, numero_camiseta: numero_camiseta ?? null, fecha_nacimiento: fecha_nacimiento ?? null }
   res.status(201).json({ token, user: { id: newUser.id, email: newUser.email }, profile })
 })
 
