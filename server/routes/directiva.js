@@ -135,7 +135,7 @@ router.put('/cobros/:id', ...onlyDirectiva, async (req, res) => {
 // ─── CUOTAS ───────────────────────────────────────────────────
 
 router.get('/cuotas', ...onlyDirectiva, async (req, res) => {
-  const rows = await sql`SELECT * FROM cuotas_jugadores`
+  const rows = await sql`SELECT * FROM cuotas_jugadores ORDER BY anio DESC, mes DESC`
   res.json(rows)
 })
 
@@ -153,11 +153,113 @@ router.post('/cuotas', ...onlyDirectiva, async (req, res) => {
   res.json(row)
 })
 
-// ─── JUGADORES (lectura para directiva) ──────────────────────
+// POST /api/directiva/cuotas/abrir-mes — crea cuota pendiente para TODOS los jugadores
+router.post('/cuotas/abrir-mes', ...onlyDirectiva, async (req, res) => {
+  const { mes, anio, monto } = req.body
+  if (!mes || !anio || !monto) return res.status(400).json({ error: 'mes, anio y monto son requeridos' })
+
+  const jugadores = await sql`SELECT id FROM profiles WHERE role = 'jugador'`
+  let creados = 0, existentes = 0
+
+  for (const j of jugadores) {
+    const [existing] = await sql`SELECT id FROM cuotas_jugadores WHERE jugador_id = ${j.id} AND mes = ${mes} AND anio = ${anio}`
+    if (existing) { existentes++; continue }
+    await sql`
+      INSERT INTO cuotas_jugadores (jugador_id, mes, anio, estado, monto)
+      VALUES (${j.id}, ${mes}, ${anio}, 'pendiente', ${monto})
+    `
+    creados++
+  }
+  res.json({ creados, existentes, total: jugadores.length })
+})
+
+// ─── JUGADORES ────────────────────────────────────────────────
 
 router.get('/jugadores', ...onlyDirectiva, async (req, res) => {
-  const rows = await sql`SELECT id, nombre, apellido, posicion, numero_camiseta FROM profiles WHERE role = 'jugador' ORDER BY apellido`
+  const rows = await sql`SELECT id, nombre, apellido, posicion, numero_camiseta, telefono, fecha_nacimiento FROM profiles WHERE role = 'jugador' ORDER BY apellido`
   res.json(rows)
+})
+
+router.get('/jugadores/:id', ...onlyDirectiva, async (req, res) => {
+  const [jugador] = await sql`SELECT * FROM profiles WHERE id = ${req.params.id}`
+  if (!jugador) return res.status(404).json({ error: 'Jugador no encontrado' })
+
+  const cuotas = await sql`
+    SELECT * FROM cuotas_jugadores WHERE jugador_id = ${req.params.id}
+    ORDER BY anio DESC, mes DESC
+  `
+  const partidos = await sql`
+    SELECT pp.minutos_jugados, pp.puntuacion, p.fecha, p.rival, p.resultado_propio, p.resultado_rival, p.tipo
+    FROM participacion_partido pp
+    JOIN partidos p ON p.id = pp.partido_id
+    WHERE pp.jugador_id = ${req.params.id}
+    ORDER BY p.fecha DESC
+    LIMIT 20
+  `
+  const asistencias = await sql`SELECT asistio FROM asistencia_entrenamiento WHERE jugador_id = ${req.params.id}`
+  const pctAsistencia = asistencias.length
+    ? Math.round((asistencias.filter(a => a.asistio).length / asistencias.length) * 100)
+    : null
+
+  res.json({ jugador, cuotas, partidos, pctAsistencia })
+})
+
+// ─── NOTIFICACIONES ───────────────────────────────────────────
+
+router.get('/notificaciones', ...onlyDirectiva, async (req, res) => {
+  const now = new Date()
+  const mes = now.getMonth() + 1
+  const anio = now.getFullYear()
+
+  // Jugadores con cuotas vencidas o pendientes del mes actual
+  const cuotasPendientes = await sql`
+    SELECT COUNT(DISTINCT jugador_id)::int as count
+    FROM cuotas_jugadores
+    WHERE estado IN ('pendiente', 'vencido')
+    AND (anio < ${anio} OR (anio = ${anio} AND mes <= ${mes}))
+  `
+  // Jugadores con 2+ meses sin pagar
+  const deudores = await sql`
+    SELECT jugador_id, COUNT(*)::int as meses
+    FROM cuotas_jugadores
+    WHERE estado IN ('pendiente', 'vencido')
+    GROUP BY jugador_id
+    HAVING COUNT(*) >= 2
+  `
+  // Cobros de sponsors vencidos
+  const cobrosVencidos = await sql`
+    SELECT COUNT(*)::int as count FROM cobros_sponsor WHERE estado = 'pendiente' AND fecha_esperada < CURRENT_DATE
+  `
+  res.json({
+    cuotasPendientes: cuotasPendientes[0]?.count || 0,
+    deudores: deudores.length,
+    cobrosVencidos: cobrosVencidos[0]?.count || 0,
+  })
+})
+
+// ─── PARTIDOS (directiva puede ver y editar resultados) ───────
+
+router.get('/partidos', ...onlyDirectiva, async (req, res) => {
+  const rows = await sql`SELECT * FROM partidos ORDER BY fecha DESC`
+  res.json(rows)
+})
+
+router.put('/partidos/:id', ...onlyDirectiva, async (req, res) => {
+  const { resultado_propio, resultado_rival, notas, rival, fecha, hora, lugar, tipo, es_local } = req.body
+  const [row] = await sql`
+    UPDATE partidos SET
+      rival = ${rival ?? null},
+      fecha = ${fecha ?? null},
+      hora = ${hora ?? null},
+      lugar = ${lugar ?? null},
+      tipo = ${tipo ?? null},
+      es_local = ${es_local ?? true},
+      resultado_propio = ${resultado_propio ?? null},
+      resultado_rival = ${resultado_rival ?? null},
+      notas = ${notas ?? null}
+    WHERE id = ${req.params.id} RETURNING *
+  `
+  res.json(row)
 })
 
 export default router

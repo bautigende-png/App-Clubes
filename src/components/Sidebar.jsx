@@ -86,7 +86,7 @@ function SidebarContent({ links, title, profile, accent, activeClass, onLogout, 
       </div>
 
       <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-        {links.map(({ to, icon: Icon, label }) => (
+        {links.map(({ to, icon: Icon, label, badge, badgeVariant }) => (
           <NavLink
             key={to}
             to={to}
@@ -101,7 +101,16 @@ function SidebarContent({ links, title, profile, accent, activeClass, onLogout, 
             }
           >
             <Icon size={18} />
-            {label}
+            <span className="flex-1">{label}</span>
+            {badge != null && (
+              <span className={`text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center leading-none ${
+                badgeVariant === 'red'    ? 'bg-red-500/30 text-red-400' :
+                badgeVariant === 'yellow' ? 'bg-yellow-500/30 text-yellow-400' :
+                'bg-slate-600 text-slate-300'
+              }`}>
+                {badge}
+              </span>
+            )}
           </NavLink>
         ))}
       </nav>

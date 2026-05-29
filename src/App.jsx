@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'sonner'
 import { AuthProvider, useAuth } from './context/AuthContext'
+import { ClubProvider } from './context/ClubContext'
 import { ProtectedRoute } from './router/ProtectedRoute'
 
 import Login from './pages/auth/Login'
@@ -13,6 +14,9 @@ import Finanzas from './pages/directiva/Finanzas'
 import Inventario from './pages/directiva/Inventario'
 import Sponsors from './pages/directiva/Sponsors'
 import Cuotas from './pages/directiva/Cuotas'
+import Configuracion from './pages/directiva/Configuracion'
+import JugadoresDirectiva from './pages/directiva/Jugadores'
+import PartidosDirectiva from './pages/directiva/Partidos'
 
 import TecnicoLayout from './pages/tecnico/TecnicoLayout'
 import DashboardTecnico from './pages/tecnico/DashboardTecnico'
@@ -38,6 +42,7 @@ function RoleRedirect() {
 export default function App() {
   return (
     <AuthProvider>
+      <ClubProvider>
       <BrowserRouter>
         <Toaster theme="dark" position="top-right" />
         <Routes>
@@ -58,7 +63,10 @@ export default function App() {
             <Route path="finanzas" element={<Finanzas />} />
             <Route path="inventario" element={<Inventario />} />
             <Route path="sponsors" element={<Sponsors />} />
+            <Route path="jugadores" element={<JugadoresDirectiva />} />
             <Route path="cuotas" element={<Cuotas />} />
+            <Route path="partidos" element={<PartidosDirectiva />} />
+            <Route path="configuracion" element={<Configuracion />} />
           </Route>
 
           {/* Cuerpo Técnico */}
@@ -88,6 +96,7 @@ export default function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
+      </ClubProvider>
     </AuthProvider>
   )
 }
