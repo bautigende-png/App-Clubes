@@ -34,7 +34,9 @@ export default function Partidos() {
     const map = {}
     for (const j of jugadores) {
       const found = data.find(p => p.jugador_id === j.id)
-      map[j.id] = found ? { ...found, jugo: (found.minutos_jugados || 0) > 0 } : { jugador_id: j.id, minutos_jugados: 0, puntuacion: '', puntos_fuertes: '', puntos_debiles: '', notas: '', jugo: false }
+      map[j.id] = found
+        ? { ...found, jugo: (found.minutos_jugados || 0) > 0, categoria_pago: found.categoria_pago || 'completo' }
+        : { jugador_id: j.id, minutos_jugados: 0, puntuacion: '', puntos_fuertes: '', puntos_debiles: '', notas: '', jugo: false, categoria_pago: 'completo' }
     }
     setParticipaciones(map)
     setPlanilla({ ...partido })
@@ -44,7 +46,7 @@ export default function Partidos() {
     setSaving(true)
     try {
       await api.put(`/api/tecnico/partidos/${planilla.id}`, { resultado_propio: planilla.resultado_propio !== '' ? parseInt(planilla.resultado_propio) : null, resultado_rival: planilla.resultado_rival !== '' ? parseInt(planilla.resultado_rival) : null, notas: planilla.notas })
-      await api.put(`/api/tecnico/partidos/${planilla.id}/participaciones`, { participaciones: Object.values(participaciones).filter(p => p.jugo).map(p => ({ jugador_id: p.jugador_id, minutos_jugados: p.minutos_jugados || 0, puntuacion: p.puntuacion ? parseFloat(p.puntuacion) : null, puntos_fuertes: p.puntos_fuertes || null, puntos_debiles: p.puntos_debiles || null, notas: p.notas || null })) })
+      await api.put(`/api/tecnico/partidos/${planilla.id}/participaciones`, { participaciones: Object.values(participaciones).filter(p => p.jugo).map(p => ({ jugador_id: p.jugador_id, minutos_jugados: p.minutos_jugados || 0, puntuacion: p.puntuacion ? parseFloat(p.puntuacion) : null, puntos_fuertes: p.puntos_fuertes || null, puntos_debiles: p.puntos_debiles || null, notas: p.notas || null, categoria_pago: p.categoria_pago || 'completo' })) })
       toast.success('Planilla guardada')
       setPlanilla(null)
       loadAll()
@@ -140,22 +142,46 @@ export default function Partidos() {
                       </label>
                     </div>
                     {p.jugo && (
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs text-slate-400 flex items-center gap-1"><Clock size={10} />Minutos</label>
-                          <input type="number" min="0" max="120" value={p.minutos_jugados || ''} onChange={e => setParticipaciones(prev => ({...prev, [j.id]: {...prev[j.id], minutos_jugados: e.target.value}}))} className="bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500" />
+                      <div className="space-y-3">
+                        {/* Tiempo jugado y tarifa */}
+                        <div className="grid grid-cols-3 gap-2">
+                          {[
+                            { value: 'completo', label: '2 tiempos', sub: 'Tarifa completa' },
+                            { value: 'medio',    label: '1 tiempo',  sub: 'Tarifa media' },
+                            { value: 'libre',    label: 'Menos',     sub: 'Sin cobro' },
+                          ].map(opt => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => setParticipaciones(prev => ({...prev, [j.id]: {...prev[j.id], categoria_pago: opt.value}}))}
+                              className={`rounded-lg px-2 py-2 text-center text-xs transition-colors border ${
+                                (p.categoria_pago || 'completo') === opt.value
+                                  ? 'bg-blue-500/20 border-blue-500/60 text-blue-300'
+                                  : 'bg-slate-700/40 border-slate-600 text-slate-400 hover:border-slate-500'
+                              }`}
+                            >
+                              <p className="font-semibold">{opt.label}</p>
+                              <p className="text-slate-500 mt-0.5">{opt.sub}</p>
+                            </button>
+                          ))}
                         </div>
-                        <div className="flex flex-col gap-1">
-                          <label className="text-xs text-slate-400 flex items-center gap-1"><Star size={10} />Puntuación (1-10)</label>
-                          <input type="number" min="1" max="10" step="0.5" value={p.puntuacion || ''} onChange={e => setParticipaciones(prev => ({...prev, [j.id]: {...prev[j.id], puntuacion: e.target.value}}))} className="bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500" />
-                        </div>
-                        <div className="col-span-2 flex flex-col gap-1">
-                          <label className="text-xs text-slate-400">Puntos fuertes</label>
-                          <input type="text" value={p.puntos_fuertes || ''} onChange={e => setParticipaciones(prev => ({...prev, [j.id]: {...prev[j.id], puntos_fuertes: e.target.value}}))} className="bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500" />
-                        </div>
-                        <div className="col-span-2 flex flex-col gap-1">
-                          <label className="text-xs text-slate-400">A mejorar</label>
-                          <input type="text" value={p.puntos_debiles || ''} onChange={e => setParticipaciones(prev => ({...prev, [j.id]: {...prev[j.id], puntos_debiles: e.target.value}}))} className="bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500" />
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs text-slate-400 flex items-center gap-1"><Clock size={10} />Minutos</label>
+                            <input type="number" min="0" max="120" value={p.minutos_jugados || ''} onChange={e => setParticipaciones(prev => ({...prev, [j.id]: {...prev[j.id], minutos_jugados: e.target.value}}))} className="bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500" />
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <label className="text-xs text-slate-400 flex items-center gap-1"><Star size={10} />Puntuación (1-10)</label>
+                            <input type="number" min="1" max="10" step="0.5" value={p.puntuacion || ''} onChange={e => setParticipaciones(prev => ({...prev, [j.id]: {...prev[j.id], puntuacion: e.target.value}}))} className="bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500" />
+                          </div>
+                          <div className="col-span-2 flex flex-col gap-1">
+                            <label className="text-xs text-slate-400">Puntos fuertes</label>
+                            <input type="text" value={p.puntos_fuertes || ''} onChange={e => setParticipaciones(prev => ({...prev, [j.id]: {...prev[j.id], puntos_fuertes: e.target.value}}))} className="bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500" />
+                          </div>
+                          <div className="col-span-2 flex flex-col gap-1">
+                            <label className="text-xs text-slate-400">A mejorar</label>
+                            <input type="text" value={p.puntos_debiles || ''} onChange={e => setParticipaciones(prev => ({...prev, [j.id]: {...prev[j.id], puntos_debiles: e.target.value}}))} className="bg-slate-900 border border-slate-600 rounded-lg px-2 py-1.5 text-white text-sm focus:outline-none focus:border-blue-500" />
+                          </div>
                         </div>
                       </div>
                     )}

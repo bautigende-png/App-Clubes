@@ -87,17 +87,21 @@ router.get('/partidos/:id/participaciones', ...onlyTecnico, async (req, res) => 
 })
 
 router.put('/partidos/:id/participaciones', ...onlyTecnico, async (req, res) => {
-  const { participaciones } = req.body // [{ jugador_id, minutos_jugados, puntuacion, ... }]
+  const { participaciones } = req.body
   for (const p of participaciones) {
+    // Auto-suggest categoria_pago si no viene explícita
+    const mins = p.minutos_jugados || 0
+    const cat = p.categoria_pago || (mins >= 70 ? 'completo' : mins >= 35 ? 'medio' : 'libre')
     await sql`
-      INSERT INTO participacion_partido (partido_id, jugador_id, minutos_jugados, puntuacion, puntos_fuertes, puntos_debiles, notas)
-      VALUES (${req.params.id}, ${p.jugador_id}, ${p.minutos_jugados ?? 0}, ${p.puntuacion ?? null}, ${p.puntos_fuertes ?? null}, ${p.puntos_debiles ?? null}, ${p.notas ?? null})
+      INSERT INTO participacion_partido (partido_id, jugador_id, minutos_jugados, puntuacion, puntos_fuertes, puntos_debiles, notas, categoria_pago)
+      VALUES (${req.params.id}, ${p.jugador_id}, ${mins}, ${p.puntuacion ?? null}, ${p.puntos_fuertes ?? null}, ${p.puntos_debiles ?? null}, ${p.notas ?? null}, ${cat})
       ON CONFLICT (partido_id, jugador_id) DO UPDATE SET
         minutos_jugados = EXCLUDED.minutos_jugados,
-        puntuacion = EXCLUDED.puntuacion,
-        puntos_fuertes = EXCLUDED.puntos_fuertes,
-        puntos_debiles = EXCLUDED.puntos_debiles,
-        notas = EXCLUDED.notas
+        puntuacion      = EXCLUDED.puntuacion,
+        puntos_fuertes  = EXCLUDED.puntos_fuertes,
+        puntos_debiles  = EXCLUDED.puntos_debiles,
+        notas           = EXCLUDED.notas,
+        categoria_pago  = EXCLUDED.categoria_pago
     `
   }
   res.json({ ok: true })

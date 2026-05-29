@@ -3,7 +3,7 @@ import { useClub } from '../../context/ClubContext'
 import { Card } from '../../components/Card'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
-import { Palette, Upload, RotateCcw, Check, Shield, X } from 'lucide-react'
+import { Palette, Upload, RotateCcw, Check, Shield, X, Trophy } from 'lucide-react'
 import { toast } from 'sonner'
 
 const PRESETS = [
@@ -26,6 +26,8 @@ export default function Configuracion() {
     color_primario: settings.color_primario || '#22c55e',
     color_secundario: settings.color_secundario || '#3b82f6',
     logo_url: settings.logo_url || '',
+    tarifa_completa: settings.tarifa_completa ?? 5000,
+    tarifa_media: settings.tarifa_media ?? 2500,
   })
   const [saving, setSaving] = useState(false)
   const [preview, setPreview] = useState(settings.logo_url || '')
@@ -71,7 +73,7 @@ export default function Configuracion() {
   }
 
   function reset() {
-    const defaults = { nombre_club: 'Mi Club', color_primario: '#22c55e', color_secundario: '#3b82f6', logo_url: '' }
+    const defaults = { nombre_club: 'Mi Club', color_primario: '#22c55e', color_secundario: '#3b82f6', logo_url: '', tarifa_completa: 5000, tarifa_media: 2500 }
     setForm(defaults)
     setPreview('')
   }
@@ -217,6 +219,45 @@ export default function Configuracion() {
               <span className="text-sm text-slate-300 font-mono">{form.color_secundario}</span>
             </div>
           </div>
+        </div>
+      </Card>
+
+      {/* Tarifas de partido */}
+      <Card className="space-y-4">
+        <h2 className="text-sm font-semibold text-white flex items-center gap-2">
+          <Trophy size={16} className="text-slate-400" /> Tarifas por partido
+        </h2>
+        <p className="text-xs text-slate-500">Monto que se cobra a cada jugador según cuánto jugó. Se usa para dividir el costo de cada partido.</p>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm text-slate-300">Tarifa completa</label>
+            <p className="text-xs text-slate-500 mb-1">Jugó 1 tiempo completo o más</p>
+            <div className="flex items-center gap-2 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2">
+              <span className="text-slate-500 text-sm">$</span>
+              <input
+                type="number" min="0" step="100"
+                value={form.tarifa_completa}
+                onChange={e => set('tarifa_completa', e.target.value)}
+                className="flex-1 bg-transparent text-white outline-none text-sm"
+              />
+            </div>
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm text-slate-300">Tarifa media</label>
+            <p className="text-xs text-slate-500 mb-1">Jugó menos de 1 tiempo</p>
+            <div className="flex items-center gap-2 bg-slate-900 border border-slate-600 rounded-lg px-3 py-2">
+              <span className="text-slate-500 text-sm">$</span>
+              <input
+                type="number" min="0" step="100"
+                value={form.tarifa_media}
+                onChange={e => set('tarifa_media', e.target.value)}
+                className="flex-1 bg-transparent text-white outline-none text-sm"
+              />
+            </div>
+          </div>
+        </div>
+        <div className="bg-slate-700/30 rounded-lg px-3 py-2 text-xs text-slate-400">
+          También podés ingresar el costo total del partido y se distribuye automáticamente según la proporción.
         </div>
       </Card>
 

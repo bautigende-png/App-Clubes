@@ -245,18 +245,109 @@ router.get('/partidos', ...onlyDirectiva, async (req, res) => {
 })
 
 router.put('/partidos/:id', ...onlyDirectiva, async (req, res) => {
-  const { resultado_propio, resultado_rival, notas, rival, fecha, hora, lugar, tipo, es_local } = req.body
+  const { resultado_propio, resultado_rival, notas, rival, fecha, hora, lugar, tipo, es_local, costo_total } = req.body
   const [row] = await sql`
     UPDATE partidos SET
-      rival = ${rival ?? null},
-      fecha = ${fecha ?? null},
-      hora = ${hora ?? null},
-      lugar = ${lugar ?? null},
-      tipo = ${tipo ?? null},
-      es_local = ${es_local ?? true},
+      rival            = ${rival ?? null},
+      fecha            = ${fecha ?? null},
+      hora             = ${hora ?? null},
+      lugar            = ${lugar ?? null},
+      tipo             = ${tipo ?? null},
+      es_local         = ${es_local ?? true},
       resultado_propio = ${resultado_propio ?? null},
-      resultado_rival = ${resultado_rival ?? null},
-      notas = ${notas ?? null}
+      resultado_rival  = ${resultado_rival ?? null},
+      notas            = ${notas ?? null},
+      costo_total      = ${costo_total != null ? parseFloat(costo_total) : null}
+    WHERE id = ${req.params.id} RETURNING *
+  `
+  res.json(row)
+})
+
+// GET cobros de un partido
+router.get('/partidos/:id/cobros', ...onlyDirectiva, async (req, res) => {
+  const cobros = await sql`
+    SELECT cb.*, p.nombre, p.apellido, p.posicion, p.numero_camiseta
+    FROM cobros_partido cb
+    JOIN profiles p ON p.id = cb.jugador_id
+    WHERE cb.partido_id = ${req.params.id}
+    ORDER BY p.apellido
+  `
+  res.json(cobros)
+})
+
+// POST generar cobros automáticos para un partido
+router.post('/partidos/:id/cobros/generar', ...onlyDirectiva, async (req, res) => {
+  const { costo_total } = req.body
+  const partidoId = req.params.id
+
+  // Obtener tarifas configuradas
+  const [settings] = await sql`SELECT tarifa_completa, tarifa_media FROM club_settings WHERE id = 1`
+  const tarifaCompleta = parseFloat(settings?.tarifa_completa ?? 5000)
+  const tarifaMedia    = parseFloat(settings?.tarifa_media ?? 2500)
+
+  // Obtener participaciones con categoria_pago
+  const participaciones = await sql`
+    SELECT pp.jugador_id, pp.categoria_pago, pp.minutos_jugados
+    FROM participacion_partido pp
+    WHERE pp.partido_id = ${partidoId} AND pp.minutos_jugados > 0
+  `
+
+  if (participaciones.length === 0)
+    return res.status(400).json({ error: 'No hay jugadores en la planilla del partido' })
+
+  let montos
+  if (costo_total) {
+    // Distribución proporcional del costo total
+    const total = parseFloat(costo_total)
+    const pesoTotal = participaciones.reduce((s, p) => {
+      const cat = p.categoria_pago || 'completo'
+      return s + (cat === 'completo' ? 1 : cat === 'medio' ? 0.5 : 0)
+    }, 0)
+    montos = participaciones.map(p => {
+      const cat = p.categoria_pago || 'completo'
+      const peso = cat === 'completo' ? 1 : cat === 'medio' ? 0.5 : 0
+      return { jugador_id: p.jugador_id, categoria: cat, monto: pesoTotal > 0 ? Math.round((total * peso) / pesoTotal) : 0 }
+    })
+  } else {
+    // Tarifas fijas de configuración
+    montos = participaciones.map(p => {
+      const cat = p.categoria_pago || 'completo'
+      return { jugador_id: p.jugador_id, categoria: cat, monto: cat === 'completo' ? tarifaCompleta : cat === 'medio' ? tarifaMedia : 0 }
+    })
+  }
+
+  // Upsert cobros (no sobrescribe los ya pagados)
+  for (const m of montos) {
+    if (m.categoria === 'libre') continue
+    await sql`
+      INSERT INTO cobros_partido (partido_id, jugador_id, categoria, monto, estado)
+      VALUES (${partidoId}, ${m.jugador_id}, ${m.categoria}, ${m.monto}, 'pendiente')
+      ON CONFLICT (partido_id, jugador_id) DO UPDATE SET
+        categoria = EXCLUDED.categoria,
+        monto = EXCLUDED.monto
+      WHERE cobros_partido.estado = 'pendiente'
+    `
+  }
+
+  // Si se pasó costo_total, actualizarlo en el partido
+  if (costo_total) {
+    await sql`UPDATE partidos SET costo_total = ${parseFloat(costo_total)} WHERE id = ${partidoId}`
+  }
+
+  const cobros = await sql`
+    SELECT cb.*, p.nombre, p.apellido FROM cobros_partido cb
+    JOIN profiles p ON p.id = cb.jugador_id WHERE cb.partido_id = ${partidoId} ORDER BY p.apellido
+  `
+  res.json({ cobros, tarifaCompleta, tarifaMedia })
+})
+
+// PUT marcar cobro como pagado / pendiente
+router.put('/cobros-partido/:id', ...onlyDirectiva, async (req, res) => {
+  const { estado, fecha_pago } = req.body
+  const [row] = await sql`
+    UPDATE cobros_partido SET
+      estado = ${estado},
+      fecha_pago = ${estado === 'pagado' ? (fecha_pago || new Date().toISOString().split('T')[0]) : null}
     WHERE id = ${req.params.id} RETURNING *
   `
   res.json(row)

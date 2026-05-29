@@ -4,22 +4,22 @@ import { requireAuth, requireRole } from '../auth.js'
 
 const router = Router()
 
-// GET público — todos los usuarios necesitan los colores y logo
 router.get('/', async (_req, res) => {
   const [settings] = await sql`SELECT * FROM club_settings WHERE id = 1`
   res.json(settings || {})
 })
 
-// PUT — solo directiva
 router.put('/', requireAuth, requireRole('directiva'), async (req, res) => {
-  const { nombre_club, color_primario, color_secundario, logo_url } = req.body
+  const { nombre_club, color_primario, color_secundario, logo_url, tarifa_completa, tarifa_media } = req.body
   const [updated] = await sql`
     UPDATE club_settings SET
-      nombre_club     = ${nombre_club ?? 'Mi Club'},
-      color_primario  = ${color_primario ?? '#22c55e'},
+      nombre_club      = ${nombre_club ?? 'Mi Club'},
+      color_primario   = ${color_primario ?? '#22c55e'},
       color_secundario = ${color_secundario ?? '#3b82f6'},
-      logo_url        = ${logo_url ?? null},
-      updated_at      = now()
+      logo_url         = ${logo_url ?? null},
+      tarifa_completa  = ${tarifa_completa != null ? parseFloat(tarifa_completa) : 5000},
+      tarifa_media     = ${tarifa_media != null ? parseFloat(tarifa_media) : 2500},
+      updated_at       = now()
     WHERE id = 1
     RETURNING *
   `
