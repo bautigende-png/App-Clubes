@@ -246,6 +246,9 @@ router.get('/partidos', ...onlyDirectiva, async (req, res) => {
 
 router.put('/partidos/:id', ...onlyDirectiva, async (req, res) => {
   const { resultado_propio, resultado_rival, notas, rival, fecha, hora, lugar, tipo, es_local, costo_total } = req.body
+  const id = req.params.id
+  const monto = costo_total != null && costo_total !== '' ? parseFloat(costo_total) : null
+
   const [row] = await sql`
     UPDATE partidos SET
       rival            = ${rival ?? null},
@@ -257,9 +260,32 @@ router.put('/partidos/:id', ...onlyDirectiva, async (req, res) => {
       resultado_propio = ${resultado_propio ?? null},
       resultado_rival  = ${resultado_rival ?? null},
       notas            = ${notas ?? null},
-      costo_total      = ${costo_total != null ? parseFloat(costo_total) : null}
-    WHERE id = ${req.params.id} RETURNING *
+      costo_total      = ${monto}
+    WHERE id = ${id} RETURNING *
   `
+
+  // Sincronizar transacción de egreso para el partido
+  if (monto != null && monto > 0) {
+    const fechaTx = row.fecha ? String(row.fecha).slice(0, 10) : new Date().toISOString().split('T')[0]
+    const descripcion = `Partido vs ${row.rival} (${fechaTx})`
+    const [existing] = await sql`
+      SELECT id FROM transacciones WHERE origen = 'partido' AND origen_id = ${id}
+    `
+    if (existing) {
+      await sql`
+        UPDATE transacciones SET monto = ${monto}, fecha = ${fechaTx}, descripcion = ${descripcion}
+        WHERE id = ${existing.id}
+      `
+    } else {
+      await sql`
+        INSERT INTO transacciones (tipo, categoria, descripcion, monto, fecha, origen, origen_id, creado_por)
+        VALUES ('egreso', 'arbitraje', ${descripcion}, ${monto}, ${fechaTx}, 'partido', ${id}, ${req.user.id})
+      `
+    }
+  } else if (monto == null) {
+    await sql`DELETE FROM transacciones WHERE origen = 'partido' AND origen_id = ${id}`
+  }
+
   res.json(row)
 })
 
@@ -351,6 +377,58 @@ router.put('/cobros-partido/:id', ...onlyDirectiva, async (req, res) => {
     WHERE id = ${req.params.id} RETURNING *
   `
   res.json(row)
+})
+
+// ─── ENTRENAMIENTOS (vista directiva) ─────────────────────────
+
+router.get('/entrenamientos', ...onlyDirectiva, async (req, res) => {
+  const rows = await sql`
+    SELECT e.*,
+      COUNT(a.id) FILTER (WHERE a.asistio = true)::int AS asistentes
+    FROM entrenamientos e
+    LEFT JOIN asistencia_entrenamiento a ON a.entrenamiento_id = e.id
+    GROUP BY e.id
+    ORDER BY e.fecha DESC
+  `
+  res.json(rows)
+})
+
+// PUT /api/directiva/entrenamientos/:id/costo — establece el costo y sincroniza la transacción
+router.put('/entrenamientos/:id/costo', ...onlyDirectiva, async (req, res) => {
+  const { costo } = req.body
+  const id = req.params.id
+  const monto = costo != null && costo !== '' ? parseFloat(costo) : null
+
+  // Actualizar costo en el entrenamiento
+  const [ent] = await sql`
+    UPDATE entrenamientos SET costo = ${monto} WHERE id = ${id} RETURNING *
+  `
+  if (!ent) return res.status(404).json({ error: 'Entrenamiento no encontrado' })
+
+  if (monto != null && monto > 0) {
+    const fecha = ent.fecha ? String(ent.fecha).slice(0, 10) : new Date().toISOString().split('T')[0]
+    const descripcion = `Entrenamiento ${fecha}`
+    // Upsert: si ya existe una transacción vinculada a este entrenamiento, actualizarla
+    const [existing] = await sql`
+      SELECT id FROM transacciones WHERE origen = 'entrenamiento' AND origen_id = ${id}
+    `
+    if (existing) {
+      await sql`
+        UPDATE transacciones SET monto = ${monto}, fecha = ${fecha}, descripcion = ${descripcion}
+        WHERE id = ${existing.id}
+      `
+    } else {
+      await sql`
+        INSERT INTO transacciones (tipo, categoria, descripcion, monto, fecha, origen, origen_id, creado_por)
+        VALUES ('egreso', 'entrenamiento', ${descripcion}, ${monto}, ${fecha}, 'entrenamiento', ${id}, ${req.user.id})
+      `
+    }
+  } else {
+    // Si se borró el costo, eliminar la transacción vinculada
+    await sql`DELETE FROM transacciones WHERE origen = 'entrenamiento' AND origen_id = ${id}`
+  }
+
+  res.json(ent)
 })
 
 export default router

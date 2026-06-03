@@ -17,6 +17,7 @@ import Cuotas from './pages/directiva/Cuotas'
 import Configuracion from './pages/directiva/Configuracion'
 import JugadoresDirectiva from './pages/directiva/Jugadores'
 import PartidosDirectiva from './pages/directiva/Partidos'
+import EntrenamientosDirectiva from './pages/directiva/EntrenamientosDirectiva'
 
 import TecnicoLayout from './pages/tecnico/TecnicoLayout'
 import DashboardTecnico from './pages/tecnico/DashboardTecnico'
@@ -66,6 +67,7 @@ export default function App() {
             <Route path="jugadores" element={<JugadoresDirectiva />} />
             <Route path="cuotas" element={<Cuotas />} />
             <Route path="partidos" element={<PartidosDirectiva />} />
+            <Route path="entrenamientos" element={<EntrenamientosDirectiva />} />
             <Route path="configuracion" element={<Configuracion />} />
           </Route>
 

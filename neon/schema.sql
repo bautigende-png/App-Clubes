@@ -190,3 +190,14 @@ INSERT INTO profiles (id, nombre, apellido, role, numero_camiseta, posicion, fec
   ('dddddddd-0000-0000-0000-000000000004', 'Matías',  'Rodríguez', 'jugador',  9, 'Delantero',     '1998-07-22', '11-4444-4444'),
   ('eeeeeeee-0000-0000-0000-000000000005', 'Nicolás', 'López',     'jugador',  1, 'Arquero',        '2001-11-05', '11-5555-5555')
 ON CONFLICT (id) DO NOTHING;
+
+-- ============================================================
+-- MIGRACIONES
+-- ============================================================
+
+-- Costo por entrenamiento (para directiva)
+ALTER TABLE entrenamientos ADD COLUMN IF NOT EXISTS costo NUMERIC(10,2);
+
+-- Trazabilidad de transacciones generadas automáticamente
+ALTER TABLE transacciones ADD COLUMN IF NOT EXISTS origen TEXT;
+ALTER TABLE transacciones ADD COLUMN IF NOT EXISTS origen_id UUID;
