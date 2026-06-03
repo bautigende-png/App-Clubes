@@ -5,6 +5,13 @@ import { requireAuth, requireRole } from '../auth.js'
 const router = Router()
 const onlyDirectiva = [requireAuth, requireRole('directiva')]
 
+// Convierte cualquier valor fecha de Neon (Date object o string) a "YYYY-MM-DD"
+function toDateStr(val) {
+  if (!val) return null
+  if (val instanceof Date) return val.toISOString().slice(0, 10)
+  return String(val).slice(0, 10)
+}
+
 // ─── DASHBOARD ───────────────────────────────────────────────
 
 router.get('/dashboard', ...onlyDirectiva, async (req, res) => {
@@ -266,7 +273,7 @@ router.put('/partidos/:id', ...onlyDirectiva, async (req, res) => {
 
   // Sincronizar transacción de egreso para el partido
   if (monto != null && monto > 0) {
-    const fechaTx = row.fecha ? String(row.fecha).slice(0, 10) : new Date().toISOString().split('T')[0]
+    const fechaTx = toDateStr(row.fecha) || new Date().toISOString().split('T')[0]
     const descripcion = `Partido vs ${row.rival} (${fechaTx})`
     const [existing] = await sql`
       SELECT id FROM transacciones WHERE origen = 'partido' AND origen_id = ${id}
@@ -406,7 +413,7 @@ router.put('/entrenamientos/:id/costo', ...onlyDirectiva, async (req, res) => {
   if (!ent) return res.status(404).json({ error: 'Entrenamiento no encontrado' })
 
   if (monto != null && monto > 0) {
-    const fecha = ent.fecha ? String(ent.fecha).slice(0, 10) : new Date().toISOString().split('T')[0]
+    const fecha = toDateStr(ent.fecha) || new Date().toISOString().split('T')[0]
     const descripcion = `Entrenamiento ${fecha}`
     // Upsert: si ya existe una transacción vinculada a este entrenamiento, actualizarla
     const [existing] = await sql`
