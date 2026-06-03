@@ -27,7 +27,7 @@ export function Sidebar({ links, title }) {
     <>
       {/* ── Mobile top bar (sin hamburger) ── */}
       <div
-        className="lg:hidden flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-700 sticky top-0 z-30"
+        className="lg:hidden flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-700 z-30 shrink-0"
         style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
       >
         <div className="flex items-center gap-2.5">
@@ -231,7 +231,7 @@ function SidebarContent({ links, title, profile, settings, onLogout }) {
 
 export function SidebarLayout({ sidebar, children }) {
   return (
-    <div className="flex min-h-screen min-h-dvh bg-slate-900">
+    <div className="flex flex-col lg:flex-row min-h-screen min-h-dvh bg-slate-900">
       {sidebar}
       <main className="flex-1 overflow-auto pb-nav-safe lg:pb-0">
         {children}
