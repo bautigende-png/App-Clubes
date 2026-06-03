@@ -21,7 +21,7 @@ export default function DashboardDirectiva() {
       const mesesData = {}
       for (let m = 1; m <= mes; m++) mesesData[m] = { mes: monthName(m).slice(0, 3), ingresos: 0, egresos: 0 }
       for (const t of txAnio) {
-        const m = new Date(t.fecha + 'T00:00').getMonth() + 1
+        const m = new Date(String(t.fecha).slice(0, 10) + 'T12:00:00').getMonth() + 1
         if (mesesData[m]) {
           if (t.tipo === 'ingreso') mesesData[m].ingresos += Number(t.monto || 0)
           else mesesData[m].egresos += Number(t.monto || 0)

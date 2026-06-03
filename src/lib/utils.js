@@ -13,18 +13,24 @@ export function formatCurrency(amount) {
   }).format(amount || 0)
 }
 
+function extractYMD(dateStr) {
+  if (!dateStr) return null
+  // Handles: "2026-06-01", "2026-06-01T00:00:00.000Z", Date objects, etc.
+  const s = String(dateStr).slice(0, 10)
+  const m = s.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  return m ? { y: m[1], mo: m[2], d: m[3] } : null
+}
+
 export function formatDate(dateStr) {
-  if (!dateStr) return '-'
-  const d = new Date(String(dateStr).slice(0, 10) + 'T00:00:00')
-  if (isNaN(d.getTime())) return '-'
-  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
+  const p = extractYMD(dateStr)
+  if (!p) return '-'
+  return `${p.d}/${p.mo}/${p.y}`
 }
 
 export function formatDateShort(dateStr) {
-  if (!dateStr) return '-'
-  const d = new Date(String(dateStr).slice(0, 10) + 'T00:00:00')
-  if (isNaN(d.getTime())) return '-'
-  return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
+  const p = extractYMD(dateStr)
+  if (!p) return '-'
+  return `${p.d}/${p.mo}`
 }
 
 export function monthName(month) {
@@ -39,8 +45,9 @@ export function getCurrentMonthYear() {
 }
 
 export function calcAge(fechaNac) {
-  if (!fechaNac) return null
-  const d = new Date(String(fechaNac).slice(0, 10) + 'T00:00:00')
+  const p = extractYMD(fechaNac)
+  if (!p) return null
+  const d = new Date(`${p.y}-${p.mo}-${p.d}T12:00:00`)
   if (isNaN(d.getTime())) return null
   return Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24 * 365.25))
 }
