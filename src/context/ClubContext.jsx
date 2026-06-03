@@ -15,7 +15,6 @@ function applyColors(primario, secundario) {
   root.style.setProperty('--club-primary', primario)
   root.style.setProperty('--club-secondary', secundario)
 
-  // Generar variantes claras para bg/border (hex → rgba)
   const toRgb = hex => {
     const r = parseInt(hex.slice(1, 3), 16)
     const g = parseInt(hex.slice(3, 5), 16)
@@ -26,6 +25,24 @@ function applyColors(primario, secundario) {
     root.style.setProperty('--club-primary-rgb', toRgb(primario))
     root.style.setProperty('--club-secondary-rgb', toRgb(secundario))
   } catch {}
+
+  const themeMeta = document.getElementById('theme-color-meta')
+  if (themeMeta) themeMeta.setAttribute('content', primario)
+}
+
+function applyPWAMeta(settings) {
+  if (settings.nombre_club) {
+    document.title = settings.nombre_club
+    const appTitle = document.querySelector('meta[name="apple-mobile-web-app-title"]')
+    if (appTitle) appTitle.setAttribute('content', settings.nombre_club)
+    const appName = document.querySelector('meta[name="application-name"]')
+    if (appName) appName.setAttribute('content', settings.nombre_club)
+  }
+
+  if (settings.logo_url) {
+    const appleIcon = document.getElementById('apple-touch-icon')
+    if (appleIcon) appleIcon.setAttribute('href', settings.logo_url)
+  }
 }
 
 export function ClubProvider({ children }) {
@@ -38,6 +55,7 @@ export function ClubProvider({ children }) {
         const merged = { ...DEFAULTS, ...data }
         setSettings(merged)
         applyColors(merged.color_primario, merged.color_secundario)
+        applyPWAMeta(merged)
       })
       .catch(() => applyColors(DEFAULTS.color_primario, DEFAULTS.color_secundario))
       .finally(() => setLoading(false))
@@ -48,6 +66,7 @@ export function ClubProvider({ children }) {
     const merged = { ...DEFAULTS, ...updated }
     setSettings(merged)
     applyColors(merged.color_primario, merged.color_secundario)
+    applyPWAMeta(merged)
     return merged
   }
 
