@@ -157,6 +157,23 @@ router.post('/cuotas', ...onlyDirectiva, async (req, res) => {
       monto = EXCLUDED.monto
     RETURNING *
   `
+
+  if (estado === 'pagado' && row.monto) {
+    const [jugador] = await sql`SELECT nombre, apellido FROM profiles WHERE id = ${jugador_id}`
+    const nombreMes = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][mes - 1]
+    const descripcion = `Cuota ${jugador?.nombre ?? ''} ${jugador?.apellido ?? ''} — ${nombreMes} ${anio}`
+    const fechaTx = fecha_pago || new Date().toISOString().split('T')[0]
+    const [existing] = await sql`SELECT id FROM transacciones WHERE origen = 'cuota' AND origen_id = ${row.id}`
+    if (existing) {
+      await sql`UPDATE transacciones SET monto = ${row.monto}, fecha = ${fechaTx}, descripcion = ${descripcion} WHERE id = ${existing.id}`
+    } else {
+      await sql`INSERT INTO transacciones (tipo, categoria, descripcion, monto, fecha, origen, origen_id, creado_por)
+        VALUES ('ingreso', 'cuota', ${descripcion}, ${row.monto}, ${fechaTx}, 'cuota', ${row.id}, ${req.user.id})`
+    }
+  } else {
+    await sql`DELETE FROM transacciones WHERE origen = 'cuota' AND origen_id = ${row.id}`
+  }
+
   res.json(row)
 })
 
@@ -377,12 +394,35 @@ router.post('/partidos/:id/cobros/generar', ...onlyDirectiva, async (req, res) =
 // PUT marcar cobro como pagado / pendiente
 router.put('/cobros-partido/:id', ...onlyDirectiva, async (req, res) => {
   const { estado, fecha_pago } = req.body
+  const id = req.params.id
+  const fechaPago = estado === 'pagado' ? (fecha_pago || new Date().toISOString().split('T')[0]) : null
+
   const [row] = await sql`
-    UPDATE cobros_partido SET
-      estado = ${estado},
-      fecha_pago = ${estado === 'pagado' ? (fecha_pago || new Date().toISOString().split('T')[0]) : null}
-    WHERE id = ${req.params.id} RETURNING *
+    UPDATE cobros_partido SET estado = ${estado}, fecha_pago = ${fechaPago}
+    WHERE id = ${id} RETURNING *
   `
+
+  if (estado === 'pagado' && row.monto) {
+    const [info] = await sql`
+      SELECT p.nombre, p.apellido, pa.rival
+      FROM cobros_partido cb
+      JOIN profiles p ON p.id = cb.jugador_id
+      JOIN partidos pa ON pa.id = cb.partido_id
+      WHERE cb.id = ${id}
+    `
+    const descripcion = `Cobro partido vs ${info?.rival ?? '?'} — ${info?.nombre ?? ''} ${info?.apellido ?? ''}`
+    const fechaTx = fechaPago
+    const [existing] = await sql`SELECT id FROM transacciones WHERE origen = 'cobro_partido' AND origen_id = ${id}`
+    if (existing) {
+      await sql`UPDATE transacciones SET monto = ${row.monto}, fecha = ${fechaTx}, descripcion = ${descripcion} WHERE id = ${existing.id}`
+    } else {
+      await sql`INSERT INTO transacciones (tipo, categoria, descripcion, monto, fecha, origen, origen_id, creado_por)
+        VALUES ('ingreso', 'cobro_partido', ${descripcion}, ${row.monto}, ${fechaTx}, 'cobro_partido', ${id}, ${req.user.id})`
+    }
+  } else {
+    await sql`DELETE FROM transacciones WHERE origen = 'cobro_partido' AND origen_id = ${id}`
+  }
+
   res.json(row)
 })
 

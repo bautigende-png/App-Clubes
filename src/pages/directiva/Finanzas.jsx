@@ -11,8 +11,25 @@ import { formatCurrency, formatDate } from '../../lib/utils'
 import { Plus, DollarSign, TrendingUp, TrendingDown, Download, Filter } from 'lucide-react'
 import { toast } from 'sonner'
 
-const categorias = ['cuota', 'sponsor', 'venta', 'utilería', 'arbitraje', 'traslado', 'otros']
+// Categorías para filtros (incluye las auto-generadas)
+const categoriasFilter = ['cuota', 'cobro_partido', 'entrenamiento', 'arbitraje', 'sponsor', 'venta', 'utilería', 'traslado', 'otros']
+// Categorías para el formulario manual (sin las auto-generadas)
+const categoriasForm   = ['sponsor', 'venta', 'utilería', 'arbitraje', 'traslado', 'otros']
+
 const tipoBadge = { ingreso: 'green', egreso: 'red' }
+const categoriaLabel = {
+  cuota:        'Cuota',
+  cobro_partido:'Cobro partido',
+  entrenamiento:'Entrenamiento',
+  arbitraje:    'Arbitraje',
+  sponsor:      'Sponsor',
+  venta:        'Venta',
+  utilería:     'Utilería',
+  traslado:     'Traslado',
+  otros:        'Otros',
+}
+// Indica si la transacción fue creada automáticamente
+const esAutomatica = t => !!t.origen
 
 export default function Finanzas() {
   const [transacciones, setTransacciones] = useState([])
@@ -86,7 +103,7 @@ export default function Finanzas() {
           </Select>
           <Select value={filters.categoria} onChange={e => setFilters(f => ({...f, categoria: e.target.value}))}>
             <option value="">Todas las categorías</option>
-            {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+            {categoriasFilter.map(c => <option key={c} value={c}>{categoriaLabel[c] || c}</option>)}
           </Select>
           <Input type="date" value={filters.fechaDesde} onChange={e => setFilters(f => ({...f, fechaDesde: e.target.value}))} />
           <Input type="date" value={filters.fechaHasta} onChange={e => setFilters(f => ({...f, fechaHasta: e.target.value}))} />
@@ -101,8 +118,11 @@ export default function Finanzas() {
             {filtered.map(t => (
               <div key={t.id} className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="text-sm font-medium text-white truncate">{t.descripcion || t.categoria}</p>
-                  <p className="text-xs text-slate-500 mt-0.5 capitalize">{formatDate(t.fecha)} · {t.categoria}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-medium text-white truncate">{t.descripcion || categoriaLabel[t.categoria] || t.categoria}</p>
+                    {esAutomatica(t) && <span className="text-[10px] bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded shrink-0">auto</span>}
+                  </div>
+                  <p className="text-xs text-slate-500 mt-0.5">{formatDate(t.fecha)} · {categoriaLabel[t.categoria] || t.categoria}</p>
                 </div>
                 <div className="text-right shrink-0">
                   <p className={`text-sm font-bold ${t.tipo === 'ingreso' ? 'text-green-400' : 'text-red-400'}`}>
@@ -120,8 +140,11 @@ export default function Finanzas() {
                 <Tr key={t.id}>
                   <Td>{formatDate(t.fecha)}</Td>
                   <Td><Badge variant={tipoBadge[t.tipo]}>{t.tipo}</Badge></Td>
-                  <Td className="capitalize">{t.categoria}</Td>
-                  <Td>{t.descripcion || '-'}</Td>
+                  <Td>{categoriaLabel[t.categoria] || t.categoria}</Td>
+                  <Td>
+                    <span>{t.descripcion || '-'}</span>
+                    {esAutomatica(t) && <span className="ml-1.5 text-[10px] bg-slate-700 text-slate-400 px-1.5 py-0.5 rounded">auto</span>}
+                  </Td>
                   <Td className={`font-semibold ${t.tipo === 'ingreso' ? 'text-green-400' : 'text-red-400'}`}>
                     {t.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(t.monto)}
                   </Td>
@@ -138,7 +161,7 @@ export default function Finanzas() {
             <option value="ingreso">Ingreso</option><option value="egreso">Egreso</option>
           </Select>
           <Select label="Categoría" value={form.categoria} onChange={e => setForm(f => ({...f, categoria: e.target.value}))}>
-            {categorias.map(c => <option key={c} value={c}>{c}</option>)}
+            {categoriasForm.map(c => <option key={c} value={c}>{categoriaLabel[c] || c}</option>)}
           </Select>
           <Input label="Descripción" value={form.descripcion} onChange={e => setForm(f => ({...f, descripcion: e.target.value}))} />
           <div className="grid grid-cols-2 gap-4">
