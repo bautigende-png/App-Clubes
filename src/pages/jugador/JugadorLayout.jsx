@@ -29,6 +29,7 @@ export default function JugadorLayout() {
       <header
         className="border-b border-slate-700/60 px-4 py-3 flex items-center justify-between sticky top-0 z-20 backdrop-blur-sm"
         style={{
+          paddingTop: 'calc(0.75rem + env(safe-area-inset-top))',
           background: `linear-gradient(135deg, rgba(var(--club-primary-rgb), 0.10) 0%, #0f172a 55%)`,
         }}
       >
@@ -76,12 +77,15 @@ export default function JugadorLayout() {
       </header>
 
       {/* Contenido */}
-      <main className="flex-1 overflow-auto pb-20">
+      <main className="flex-1 overflow-auto" style={{ paddingBottom: 'calc(5rem + env(safe-area-inset-bottom))' }}>
         <Outlet />
       </main>
 
       {/* Bottom nav */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur border-t border-slate-700/60 flex z-20">
+      <nav
+        className="fixed bottom-0 left-0 right-0 bg-slate-900/95 backdrop-blur border-t border-slate-700/60 flex z-20"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
         {links.map(({ to, icon: Icon, label }) => (
           <NavLink
             key={to}

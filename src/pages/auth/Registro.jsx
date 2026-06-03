@@ -40,7 +40,13 @@ export default function Registro() {
   const { settings } = useClub()
 
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+    <div
+      className="min-h-screen bg-slate-900 flex items-center justify-center p-4"
+      style={{
+        paddingTop: 'max(1rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(1rem, env(safe-area-inset-bottom))',
+      }}
+    >
       {/* Franja superior */}
       <div className="fixed top-0 left-0 right-0 h-1" style={{ backgroundColor: 'var(--club-primary)' }} />
 

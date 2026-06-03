@@ -20,7 +20,10 @@ export function Sidebar({ links, title }) {
   return (
     <>
       {/* Mobile top bar */}
-      <div className="lg:hidden flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-700 sticky top-0 z-30">
+      <div
+        className="lg:hidden flex items-center justify-between px-4 py-3 bg-slate-900 border-b border-slate-700 sticky top-0 z-30"
+        style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
+      >
         <div className="flex items-center gap-2.5">
           <ClubLogo size={22} />
           <div>
@@ -142,7 +145,7 @@ function SidebarContent({ links, title, profile, settings, onLogout, onClose, mo
 
 export function SidebarLayout({ sidebar, children }) {
   return (
-    <div className="flex min-h-screen bg-slate-900">
+    <div className="flex min-h-screen min-h-dvh bg-slate-900">
       {sidebar}
       <main className="flex-1 overflow-auto">
         {children}
