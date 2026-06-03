@@ -22,6 +22,29 @@
   --club-secondary-rgb: 59, 130, 246;
 }
 
+/* ── Utilidades dinámicas del club ───────────────────────── */
+.club-text       { color: var(--club-primary); }
+.club-text-soft  { color: rgba(var(--club-primary-rgb), 0.7); }
+.club-bg-soft    { background-color: rgba(var(--club-primary-rgb), 0.1); }
+.club-bg-medium  { background-color: rgba(var(--club-primary-rgb), 0.2); }
+.club-border     { border-color: rgba(var(--club-primary-rgb), 0.4); }
+.club-border-strong { border-color: var(--club-primary); }
+.club-ring:focus { outline: none; box-shadow: 0 0 0 2px rgba(var(--club-primary-rgb), 0.5); }
+
+.club-btn {
+  background-color: var(--club-primary);
+  color: white;
+  transition: filter 0.15s;
+}
+.club-btn:hover  { filter: brightness(0.88); }
+.club-btn:active { filter: brightness(0.78); }
+
+.club-nav-active {
+  color: var(--club-primary) !important;
+  background-color: rgba(var(--club-primary-rgb), 0.12) !important;
+  border-color: var(--club-primary) !important;
+}
+
 * {
   box-sizing: border-box;
 }

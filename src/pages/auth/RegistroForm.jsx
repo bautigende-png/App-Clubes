@@ -1,10 +1,11 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
+import { useClub } from '../../context/ClubContext'
 import { api } from '../../lib/api'
-import { Button } from '../../components/Button'
+import { ClubLogo } from '../../components/ClubLogo'
 import { Input, Select } from '../../components/Input'
-import { Shield, Eye, EyeOff, CheckCircle2, Users, Dumbbell, Trophy, Lock } from 'lucide-react'
+import { Eye, EyeOff, CheckCircle2, Users, Dumbbell, Trophy, Lock } from 'lucide-react'
 import { toast } from 'sonner'
 
 const posiciones = ['Arquero', 'Defensor', 'Lateral', 'Mediocampista', 'Enganche', 'Extremo', 'Delantero', 'Otro']
@@ -44,6 +45,7 @@ const config = {
 
 export default function RegistroForm({ role }) {
   const navigate = useNavigate()
+  const { settings } = useClub()
   const cfg = config[role]
   const Icon = cfg.icon
 
@@ -121,15 +123,27 @@ export default function RegistroForm({ role }) {
 
   return (
     <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
+      {/* Franja color club */}
+      <div className="fixed top-0 left-0 right-0 h-1" style={{ backgroundColor: role === 'jugador' ? 'var(--club-primary)' : undefined, backgroundColor: role !== 'jugador' ? (role === 'tecnico' ? '#3b82f6' : '#8b5cf6') : 'var(--club-primary)' }} />
+
       <div className="w-full max-w-md">
 
-        {/* Header */}
-        <div className="text-center mb-7">
-          <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-4 ${cfg.iconBg}`}>
-            <Icon size={32} />
+        {/* Header con logo del club */}
+        <div className="flex flex-col items-center mb-7 gap-3">
+          {role === 'jugador' ? (
+            <div className="club-bg-soft rounded-2xl p-4">
+              <ClubLogo size={40} />
+            </div>
+          ) : (
+            <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl ${cfg.iconBg}`}>
+              <Icon size={32} />
+            </div>
+          )}
+          <div className="text-center">
+            <p className="text-slate-400 text-xs uppercase tracking-wider">{settings?.nombre_club || 'Club Manager'}</p>
+            <h1 className="text-2xl font-bold text-white mt-0.5">Registro — {cfg.label}</h1>
+            <p className="text-slate-400 text-sm mt-1">Completá tus datos para crear tu cuenta</p>
           </div>
-          <h1 className="text-2xl font-bold text-white">Registro — {cfg.label}</h1>
-          <p className="text-slate-400 text-sm mt-1">Completá tus datos para crear tu cuenta</p>
         </div>
 
         <div className="bg-slate-800 rounded-2xl p-6 border border-slate-700 shadow-2xl">
@@ -215,9 +229,25 @@ export default function RegistroForm({ role }) {
               </div>
             </div>
 
-            <Button type="submit" className={`w-full justify-center py-2.5 mt-1 text-white ${cfg.btn}`} loading={loading}>
-              Crear cuenta
-            </Button>
+            {role === 'jugador' ? (
+              <button
+                type="submit"
+                disabled={loading}
+                className="club-btn w-full rounded-lg py-2.5 font-semibold text-sm disabled:opacity-50 flex items-center justify-center gap-2 mt-1"
+              >
+                {loading && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+                Crear cuenta
+              </button>
+            ) : (
+              <button
+                type="submit"
+                disabled={loading}
+                className={`w-full rounded-lg py-2.5 font-semibold text-sm text-white disabled:opacity-50 flex items-center justify-center gap-2 mt-1 ${cfg.btn} transition-all`}
+              >
+                {loading && <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />}
+                Crear cuenta
+              </button>
+            )}
           </form>
         </div>
 
