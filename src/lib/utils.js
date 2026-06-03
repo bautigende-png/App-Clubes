@@ -15,13 +15,15 @@ export function formatCurrency(amount) {
 
 export function formatDate(dateStr) {
   if (!dateStr) return '-'
-  const d = new Date(dateStr + 'T00:00:00')
+  const d = new Date(String(dateStr).slice(0, 10) + 'T00:00:00')
+  if (isNaN(d.getTime())) return '-'
   return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })
 }
 
 export function formatDateShort(dateStr) {
   if (!dateStr) return '-'
-  const d = new Date(dateStr + 'T00:00:00')
+  const d = new Date(String(dateStr).slice(0, 10) + 'T00:00:00')
+  if (isNaN(d.getTime())) return '-'
   return d.toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
 }
 
@@ -38,6 +40,7 @@ export function getCurrentMonthYear() {
 
 export function calcAge(fechaNac) {
   if (!fechaNac) return null
-  const diff = Date.now() - new Date(fechaNac).getTime()
-  return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25))
+  const d = new Date(String(fechaNac).slice(0, 10) + 'T00:00:00')
+  if (isNaN(d.getTime())) return null
+  return Math.floor((Date.now() - d.getTime()) / (1000 * 60 * 60 * 24 * 365.25))
 }
