@@ -45,6 +45,11 @@
   border-color: var(--club-primary) !important;
 }
 
+/* Padding para contenido bajo el bottom nav en mobile PWA */
+.pb-nav-safe {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom));
+}
+
 * {
   box-sizing: border-box;
 }

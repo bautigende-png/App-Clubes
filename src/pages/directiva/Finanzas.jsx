@@ -95,19 +95,41 @@ export default function Finanzas() {
 
       {loading ? <p className="text-slate-400 py-8 text-center">Cargando...</p> :
        filtered.length === 0 ? <EmptyState icon={DollarSign} title="Sin transacciones" /> : (
-        <Table headers={['Fecha', 'Tipo', 'Categoría', 'Descripción', 'Monto']}>
-          {filtered.map(t => (
-            <Tr key={t.id}>
-              <Td>{formatDate(t.fecha)}</Td>
-              <Td><Badge variant={tipoBadge[t.tipo]}>{t.tipo}</Badge></Td>
-              <Td className="capitalize">{t.categoria}</Td>
-              <Td>{t.descripcion || '-'}</Td>
-              <Td className={`font-semibold ${t.tipo === 'ingreso' ? 'text-green-400' : 'text-red-400'}`}>
-                {t.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(t.monto)}
-              </Td>
-            </Tr>
-          ))}
-        </Table>
+        <>
+          {/* Mobile: cards */}
+          <div className="sm:hidden space-y-2">
+            {filtered.map(t => (
+              <div key={t.id} className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-white truncate">{t.descripcion || t.categoria}</p>
+                  <p className="text-xs text-slate-500 mt-0.5 capitalize">{formatDate(t.fecha)} · {t.categoria}</p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className={`text-sm font-bold ${t.tipo === 'ingreso' ? 'text-green-400' : 'text-red-400'}`}>
+                    {t.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(t.monto)}
+                  </p>
+                  <Badge variant={tipoBadge[t.tipo]} className="mt-0.5">{t.tipo}</Badge>
+                </div>
+              </div>
+            ))}
+          </div>
+          {/* Desktop: tabla */}
+          <div className="hidden sm:block">
+            <Table headers={['Fecha', 'Tipo', 'Categoría', 'Descripción', 'Monto']}>
+              {filtered.map(t => (
+                <Tr key={t.id}>
+                  <Td>{formatDate(t.fecha)}</Td>
+                  <Td><Badge variant={tipoBadge[t.tipo]}>{t.tipo}</Badge></Td>
+                  <Td className="capitalize">{t.categoria}</Td>
+                  <Td>{t.descripcion || '-'}</Td>
+                  <Td className={`font-semibold ${t.tipo === 'ingreso' ? 'text-green-400' : 'text-red-400'}`}>
+                    {t.tipo === 'ingreso' ? '+' : '-'}{formatCurrency(t.monto)}
+                  </Td>
+                </Tr>
+              ))}
+            </Table>
+          </div>
+        </>
       )}
 
       <Modal open={newModal} onClose={() => setNewModal(false)} title="Nueva transacción">

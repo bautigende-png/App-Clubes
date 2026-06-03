@@ -225,78 +225,111 @@ export default function Cuotas() {
         <span className="text-xs text-slate-500 ml-auto">{pagados}/{jugadores.length} pagaron</span>
       </div>
 
-      {/* Tabla inline */}
       {jugadores.length === 0 ? (
         <EmptyState icon={Users} title="Sin jugadores registrados" />
       ) : (
-        <div className="rounded-xl border border-slate-700 overflow-hidden">
-          <div className="overflow-x-auto">
+        <>
+          {/* Mobile: cards */}
+          <div className="sm:hidden space-y-2">
+            {filas.map(({ jugador, cuota }) => (
+              <div key={jugador.id} className="bg-slate-800 border border-slate-700 rounded-xl px-4 py-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-white shrink-0">
+                      {jugador.nombre?.[0]?.toUpperCase()}
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-white text-sm truncate">{jugador.nombre} {jugador.apellido}</p>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        {cuota ? (
+                          <Badge variant={estadoBadge[cuota.estado]}>{cuota.estado}</Badge>
+                        ) : (
+                          <Badge variant="slate">Sin registro</Badge>
+                        )}
+                        {cuota?.monto && <span className="text-xs text-slate-500">{formatCurrency(cuota.monto)}</span>}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    {(!cuota || cuota.estado !== 'pagado') && (
+                      <button
+                        onClick={() => marcarPagado(jugador, filtroMes, filtroAnio, cuota?.monto)}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-green-500/15 text-green-400 hover:bg-green-500/25 text-xs font-medium transition-colors"
+                      >
+                        <CheckCircle2 size={13} /> Pagó
+                      </button>
+                    )}
+                    <button
+                      onClick={() => openEdit(jugador, filtroMes, filtroAnio)}
+                      className="px-3 py-1.5 rounded-lg bg-slate-700 text-slate-300 hover:bg-slate-600 text-xs transition-colors"
+                    >
+                      Editar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop: tabla */}
+          <div className="hidden sm:block rounded-xl border border-slate-700 overflow-hidden">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-slate-700 bg-slate-900/50">
                   <th className="text-left px-4 py-3 text-slate-400 font-medium">Jugador</th>
                   <th className="text-left px-4 py-3 text-slate-400 font-medium">Estado</th>
-                  <th className="text-left px-4 py-3 text-slate-400 font-medium hidden sm:table-cell">Monto</th>
+                  <th className="text-left px-4 py-3 text-slate-400 font-medium">Monto</th>
                   <th className="text-left px-4 py-3 text-slate-400 font-medium hidden md:table-cell">Fecha pago</th>
                   <th className="text-right px-4 py-3 text-slate-400 font-medium">Acción</th>
                 </tr>
               </thead>
               <tbody>
-                {filas.map(({ jugador, cuota }) => {
-                  const Icon = cuota ? (estadoIcon[cuota.estado] || Clock) : Clock
-                  return (
-                    <tr key={jugador.id} className="border-b border-slate-700/50 hover:bg-slate-700/20 transition-colors">
-                      <td className="px-4 py-3">
-                        <div className="flex items-center gap-2">
-                          <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-white shrink-0">
-                            {jugador.nombre?.[0]?.toUpperCase()}
-                          </div>
-                          <div>
-                            <p className="font-medium text-white text-sm">{jugador.nombre} {jugador.apellido}</p>
-                            {jugador.posicion && <p className="text-xs text-slate-500">{jugador.posicion}</p>}
-                          </div>
+                {filas.map(({ jugador, cuota }) => (
+                  <tr key={jugador.id} className="border-b border-slate-700/50 hover:bg-slate-700/20 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold text-white shrink-0">
+                          {jugador.nombre?.[0]?.toUpperCase()}
                         </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        {cuota ? (
-                          <Badge variant={estadoBadge[cuota.estado]}>
-                            {cuota.estado}
-                          </Badge>
-                        ) : (
-                          <Badge variant="slate">Sin registro</Badge>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-slate-300 hidden sm:table-cell">
-                        {cuota?.monto ? formatCurrency(cuota.monto) : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-slate-400 text-xs hidden md:table-cell">
-                        {cuota?.fecha_pago ? formatDate(cuota.fecha_pago) : '—'}
-                      </td>
-                      <td className="px-4 py-3 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          {(!cuota || cuota.estado !== 'pagado') && (
-                            <button
-                              onClick={() => marcarPagado(jugador, filtroMes, filtroAnio, cuota?.monto)}
-                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-500/15 text-green-400 hover:bg-green-500/25 text-xs font-medium transition-colors"
-                            >
-                              <CheckCircle2 size={12} /> Pagó
-                            </button>
-                          )}
+                        <div>
+                          <p className="font-medium text-white text-sm">{jugador.nombre} {jugador.apellido}</p>
+                          {jugador.posicion && <p className="text-xs text-slate-500">{jugador.posicion}</p>}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3">
+                      {cuota ? <Badge variant={estadoBadge[cuota.estado]}>{cuota.estado}</Badge> : <Badge variant="slate">Sin registro</Badge>}
+                    </td>
+                    <td className="px-4 py-3 text-slate-300">
+                      {cuota?.monto ? formatCurrency(cuota.monto) : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-slate-400 text-xs hidden md:table-cell">
+                      {cuota?.fecha_pago ? formatDate(cuota.fecha_pago) : '—'}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        {(!cuota || cuota.estado !== 'pagado') && (
                           <button
-                            onClick={() => openEdit(jugador, filtroMes, filtroAnio)}
-                            className="px-2.5 py-1 rounded-lg bg-slate-700 text-slate-300 hover:bg-slate-600 text-xs transition-colors"
+                            onClick={() => marcarPagado(jugador, filtroMes, filtroAnio, cuota?.monto)}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-green-500/15 text-green-400 hover:bg-green-500/25 text-xs font-medium transition-colors"
                           >
-                            Editar
+                            <CheckCircle2 size={12} /> Pagó
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
+                        )}
+                        <button
+                          onClick={() => openEdit(jugador, filtroMes, filtroAnio)}
+                          className="px-2.5 py-1 rounded-lg bg-slate-700 text-slate-300 hover:bg-slate-600 text-xs transition-colors"
+                        >
+                          Editar
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-        </div>
+        </>
       )}
 
       {/* Modal abrir mes */}
